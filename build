@@ -1,0 +1,274 @@
+#!/bin/bash
+
+#************
+#***CONFIG***
+#************
+
+#If COMPILER isn't set, the script will attempt to figure it out itself.
+#If you change the compiler, you'll need to clean your build.
+#COMPILER=musl-gcc
+
+#If this isn't set, the script will attempt to find ninja and samu, in that order.
+#Alternatives include samurai's "samu"
+#NINJACOMMAND=ninja
+
+#Directories
+BUILDDIR=meson
+DOCDIR=doc
+BINDIR=bin
+LIBDIR=lib
+DEPDIR=subprojects
+SCRIPTDIR=scripts
+
+#***********
+#***OSMIA***
+#***********
+#
+# This is osmia, a build script for meson.
+#
+# Official URL:
+# https://git.orangehattech.com/dirkson/osmia
+#
+
+#*************
+#***LICENSE***
+#*************
+#
+# MIT License
+#
+# Copyright (c) 2018 Dirkson
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#
+
+#Functions
+
+osmia_help () {
+	echo "Osmia build script for meson."
+	echo "Usage: ./build [-mode] [target]"
+	echo "Target will be passed to ninja directly"
+	echo "Mode defaults to release, or is one of the following:"
+	echo "-r   OR --release    : Builds using Meson's release mode"
+	echo "-d   OR --debug      : Builds using Meson's debug mode, with --werror added"
+	echo "-c   OR --clean      : Cleans up current project meson/ninja/osmia files"
+	echo "-fc  OR --full-clean : Fully clean - Removes dependencies too"
+	echo "-a   OR --add-san    : Clang's address sanitizer"
+	echo "-w   OR --win        : Cross-compile for win32 using scripts/win32cross.txt"
+	echo "-w64 OR --win64      : cross-compile for win64"
+	echo "-o   OR --osx        : cross-compile for OSX"
+}
+osmia_clean () {
+	rm -rf $BUILDDIR $BINDIR $LIBDIR
+}
+
+osmia_symlink () {
+	FILES="$(find $1 -maxdepth 1 -type f $2 2> /dev/null)"
+	if [ ! -z "$FILES" ]; then
+		mkdir -p $3 2> /dev/null
+		rm -rf $3/* 2> /dev/null
+		for I in $FILES; do
+			ln -s ../$I $3/
+		done
+	fi
+}
+
+osmia_get () {
+	if [ ! -d "$1" ]; then
+		$2
+		if [ ! $? -eq 0 ]; then
+			echo "osmia: git command failed: $1"
+			exit 1
+		fi
+		if [ ! -d "$1" ]; then
+			echo "osmia: could not find directory: $1"
+			exit 1
+		fi
+	fi
+}
+
+
+
+clear
+
+err=0;
+
+if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
+	err=1
+	echo "osmia: er... Yeah, don't source this file."
+	return 1
+fi
+
+#What type of build?
+case "$1" in
+-d|-debug|--debug)
+	DIR=debug
+	BLD=debug
+	MESONOPTS="--werror"
+;;
+-a)
+	DIR=debug
+	BLD=debug
+	MESONOPTS=-Db_sanitize=address
+	MESONOPTS="--werror"
+;;
+-w|-win|--win|-window|--windows)
+	DIR=release
+	BLD=release
+	MESONOPTS="--cross-file scripts/win32cross.txt"
+;;
+-w64|-win64|--win64|-windows64|--windows64)
+	DIR=release
+	BLD=release
+	MESONOPTS="--cross-file scripts/win64cross.txt"
+;;
+-c|-clean|--clean)
+	if [ "$#" -ne 1 ]; then
+		echo "osmia: you passed additional arguments to clean. I have no idea what you want. Did not clean."
+		exit 1
+	fi
+	osmia_clean
+	echo "osmia: cleaned."
+	exit 0
+;;
+-fc|-fullclean|--fullclean|-full-clean|--full-clean)
+	if [ "$#" -ne 1 ]; then
+		echo "osmia: you passed additional arguments to clean. I have no idea what you want. Did not clean."
+		exit 1
+	fi
+	osmia_clean
+	rm -rf $DEPDIR
+	echo "osmia: fully cleaned."
+	exit 0
+;;
+-?|-h|-help|--help)
+	osmia_help
+	err=1
+;;
+-r|--release|*)
+	DIR=release
+	BLD=release
+;;
+esac
+
+#do some basic error checking for the user
+if [ -z "$NINJACOMMAND" ]; then
+	NINJACOMMAND=ninja
+	if [ ! -x "$(command -v $NINJACOMMAND)" ]; then
+		NINJACOMMAND=samu
+		if [ ! -x "$(command -v $NINJACOMMAND)" ]; then
+			echo "osmia: neither ninja nor samu are installed. One of the two is required to build."
+			echo "osmia: Please install either samurai's samu or ninja-build's ninja."
+			err=1;
+		fi
+	fi
+else
+	if [ ! -x "$(command -v $NINJACOMMAND)" ]; then
+		echo "osmia: manually specified ninja command not found"
+		err=1;
+	fi
+fi
+if [ ! -x "$(command -v meson)" ]; then
+	echo "osmia: meson not installed. The meson build system is required to build, please install.";
+	err=1;
+fi
+if [ -z "$COMPILER" ]; then
+	if [ -x "$(command -v clang)" ]; then
+		COMPILER="clang"
+	elif [ -x "$(command -v musl-gcc)" ]; then
+		COMPILER="musl-gcc -static"
+	elif [ -x "$(command -v gcc)" ]; then
+		COMPILER="gcc"
+	elif [ -x "$(command -v tcc)" ]; then
+		COMPILER="tcc"
+	elif [ -x "$(command -v icc)" ]; then
+		COMPILER="icc"
+	else
+		echo "osmia: unable to find any compiler at all. Please install one: clang, musl-gcc, gcc, tcc, icc"
+		err=1
+	fi
+else
+	if [ ! -x "$(command -v $COMPILER)" ]; then
+		echo "osmia: manually specified compiler does not exist. Failing."
+		err=1
+	fi
+fi
+if [ ! -x "$(command -v ccache)" ]; then
+	echo "somia: ccache not installed. Installing it could speed the build up. Hint Hint.";
+fi
+
+if [ "$#" -gt 2 ]; then
+	osmia_help
+	echo "osmia: failed, too many parameters."
+	err=1;
+fi
+
+#Note: For exit '0' is 'true' and '1' in 'false', in spite of all logic.
+if [ $err -ne 0 ]; then
+	exit 1
+fi
+
+#Grab dependencies
+if [ -d "$SCRIPTDIR" ] && [ -e scripts/dependencies ]; then
+	mkdir -p $DEPDIR 2> /dev/null
+	cd "$DEPDIR"
+	source ../scripts/dependencies
+	cd ../
+fi
+
+
+#Set up basic directory structure, if needed
+mkdir -p $BUILDDIR 2> /dev/null
+
+#MESONOPTS=MESONOPTS:"-Dc_args=$3"
+
+if [ ! -d "$BUILDDIR/$DIR" ]; then
+	export CC="$COMPILER"
+	#Run meson if required
+	mkdir $BUILDDIR/$DIR
+	meson $BUILDDIR/$DIR $MESONOPTS --buildtype $BLD
+	if [ ! $? -eq 0 ]; then
+		#Generally an error here means we need to clean before the next run
+		tail $BUILDDIR/$DIR/meson-logs/meson-log.txt
+		cp $BUILDDIR/$DIR/meson-logs/meson-log.txt meson-log.txt
+		echo "osmia: meson returned an error. Please check meson-log.txt for more info."
+		osmia_clean
+		exit 1
+	fi
+#else
+#May wish to look into this in the future
+#meson configure $MESONOPTS
+fi
+
+#Actually build
+cd $BUILDDIR/$DIR
+$NINJACOMMAND $2
+if [ ! $? -eq 0 ]; then
+	cd ../../
+	exit 1
+fi
+cd ../../
+
+#set up symlinks
+osmia_symlink "$BUILDDIR/$DIR/*" "-name *.a -o -name *.so -o -name *.dll" $LIBDIR
+osmia_symlink "$BUILDDIR/$DIR/*" "-not -name *.so -not -name *.dll -executable -not -name sanitycheckc.exe" $BINDIR
+osmia_symlink "$BUILDDIR/$DIR/*" "-name *.html -o -name *.htm" $DOCDIR
+
+echo "osmia: successful build."
+
+exit 0
