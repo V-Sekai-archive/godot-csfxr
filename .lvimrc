@@ -1,0 +1,20 @@
+"Stuff you're more likely to edit goes near the top
+
+let s:projstd = '-std=gnu89 -Wall'
+let s:projinc = '-Iinclude -Isrc -Imeson/debug -Isrc/example'
+let s:projopt = ''
+
+let g:ale_linters = {'c': ['clang', 'clangcheck']}
+"let g:ale_linters = {'c': ['clang', 'clangtidy', 'clangd', 'cppcheck']}
+"let g:ale_linters = {'c': ['clang', 'clangtidy', 'clangd', 'cppcheck','cquery', 'flawfinder', 'gcc']}
+
+let s:projstrn = s:projstd.' '.s:projopt.' '.s:projinc
+let g:ale_c_clang_options       = s:projstrn
+let g:ale_c_clangd_options      = s:projstrn
+let g:ale_c_clangformat_options = s:projstrn
+let g:ale_c_clangcheck_options  = s:projstrn
+let g:ale_c_cppcheck_options    = s:projstrn
+let g:ale_c_gcc_options         = s:projstrn
+"Use build_dir instead
+"let g:ale_c_clangtidy_options  = projstrn
+let g:ale_c_build_dir = 'meson/debug'

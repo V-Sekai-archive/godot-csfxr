@@ -10,10 +10,10 @@ extern "C"{
 
 #define PI 3.14159265f
 
-struct SfxrSound {
+typedef struct SfxrSound {
 	unsigned char* data;
 	int length;
-};
+} SfxrSound;
 
 typedef struct Sfxr {
 	int wave_type;
@@ -104,13 +104,13 @@ typedef struct Sfxr {
 	float filesample;
 } Sfxr;
 
-struct SfxrSound SfxrBlip(int seed);
-struct SfxrSound SfxrJump(int seed);
-struct SfxrSound SfxrHurt(int seed);
-struct SfxrSound SfxrPowerup(int seed);
-struct SfxrSound SfxrExplosion(int seed);
-struct SfxrSound SfxrLaser(int seed);
-struct SfxrSound SfxrPickup(int seed);
+SfxrSound SfxrBlip(int seed);
+SfxrSound SfxrJump(int seed);
+SfxrSound SfxrHurt(int seed);
+SfxrSound SfxrPowerup(int seed);
+SfxrSound SfxrExplosion(int seed);
+SfxrSound SfxrLaser(int seed);
+SfxrSound SfxrPickup(int seed);
 
 #ifdef __cplusplus
 }

@@ -20,7 +20,7 @@
 	THE SOFTWARE.
 */
 
-#include "sfxr.h"
+#include "csfxr.h"
 
 static Sfxr sfxr;
 
@@ -342,8 +342,8 @@ int SfxrCalculateLength() {
 }
 
 
-struct SfxrSound SfxrToBuffer() {
-	struct SfxrSound sound;
+SfxrSound SfxrToBuffer() {
+	SfxrSound sound;
 	sound.length = SfxrCalculateLength();
 	sound.data = (unsigned char*) malloc(sound.length);
 
@@ -413,7 +413,7 @@ int SfxrToWAV(const char* filename)
 }
 
 
-struct SfxrSound SfxrPickup(int seed) {
+SfxrSound SfxrPickup(int seed) {
 	srand(seed);
 	SfxrResetParams();
 
@@ -430,7 +430,7 @@ struct SfxrSound SfxrPickup(int seed) {
 	return SfxrToBuffer();
 }
 
-struct SfxrSound SfxrLaser(int seed) {
+SfxrSound SfxrLaser(int seed) {
 	srand(seed);
 	SfxrResetParams();
 
@@ -477,7 +477,7 @@ struct SfxrSound SfxrLaser(int seed) {
 
 
 
-struct SfxrSound SfxrExplosion(int seed) {
+SfxrSound SfxrExplosion(int seed) {
 	srand(seed);
 	SfxrResetParams();
 
@@ -522,7 +522,7 @@ struct SfxrSound SfxrExplosion(int seed) {
 }
 
 
-struct SfxrSound SfxrPowerup(int seed) {
+SfxrSound SfxrPowerup(int seed) {
 	srand(seed);
 	SfxrResetParams();
 
@@ -555,7 +555,7 @@ struct SfxrSound SfxrPowerup(int seed) {
 }
 
 
-struct SfxrSound SfxrHurt(int seed) {
+SfxrSound SfxrHurt(int seed) {
 	srand(seed);
 	SfxrResetParams();
 
@@ -578,7 +578,7 @@ struct SfxrSound SfxrHurt(int seed) {
 }
 
 
-struct SfxrSound SfxrJump(int seed) {
+SfxrSound SfxrJump(int seed) {
 	srand(seed);
 	SfxrResetParams();
 
@@ -599,7 +599,7 @@ struct SfxrSound SfxrJump(int seed) {
 }
 
 
-struct SfxrSound SfxrBlip(int seed) {
+SfxrSound SfxrBlip(int seed) {
 	srand(seed);
 	SfxrResetParams();
 

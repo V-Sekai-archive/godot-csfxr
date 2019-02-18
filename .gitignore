@@ -71,3 +71,8 @@ tags
 # Persistent undo
 [._]*.un~
 
+meson-log.txt
+meson/*
+bin/*
+lib/*
+

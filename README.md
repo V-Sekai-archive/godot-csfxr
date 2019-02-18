@@ -1,3 +1,3 @@
-# bepx
+# csfxr
 
-bepx is a c89 library to procedurally generate simple synth noises. It is based on DrPetter's sfxr and Bjorn Ritzl's Blip.
+Csfxr is a C wrapper around DrPetter's sfxr to generate randomized game sounds. The sfxr code is based on  the rework done by Bjorn Ritzl's for Blip.
